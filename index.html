@@ -14,38 +14,10 @@
     --white: #F5F0E8;
     --white-muted: rgba(245,240,232,0.6);
   }
-  html, body {
-    height: 100%;
-    background: var(--black);
-    color: var(--white);
-    font-family: 'Montserrat', sans-serif;
-    font-weight: 300;
-  }
-  body {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 100vh;
-    position: relative;
-  }
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(201,168,76,0.08) 0%, transparent 60%);
-    pointer-events: none;
-  }
-  .container {
-    position: relative;
-    z-index: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 3rem 2rem;
-    max-width: 600px;
-    width: 100%;
-    text-align: center;
-  }
+  html, body { height: 100%; background: var(--black); color: var(--white); font-family: 'Montserrat', sans-serif; font-weight: 300; }
+  body { display: flex; align-items: center; justify-content: center; min-height: 100vh; position: relative; }
+  body::before { content: ''; position: fixed; inset: 0; background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(201,168,76,0.08) 0%, transparent 60%); pointer-events: none; }
+  .container { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; padding: 3rem 2rem; max-width: 600px; width: 100%; text-align: center; }
   .top-line { width: 1px; height: 60px; background: linear-gradient(to bottom, transparent, var(--gold)); margin-bottom: 2.5rem; animation: fadeDown 1.2s ease forwards; opacity: 0; }
   .logo-area { margin-bottom: 1rem; animation: fadeUp 1s ease 0.3s forwards; opacity: 0; }
   .logo-eyebrow { font-size: 10px; font-weight: 500; letter-spacing: 0.4em; color: var(--gold); text-transform: uppercase; margin-bottom: 1rem; }
@@ -55,7 +27,7 @@
   .divider-line { flex: 1; height: 0.5px; background: linear-gradient(to right, transparent, var(--gold-dark)); }
   .divider-line.right { background: linear-gradient(to left, transparent, var(--gold-dark)); }
   .divider-diamond { width: 5px; height: 5px; background: var(--gold); transform: rotate(45deg); }
-  .subtitle { font-size: 11px; font-weight: 400; letter-spacing: 0.3em; color: var(--white-muted); text-transform: uppercase; margin-bottom: 3.5rem; animation: fadeUp 1s ease 0.6s forwards; opacity: 0; }
+  .subtitle { font-size: 11px; letter-spacing: 0.3em; color: var(--white-muted); text-transform: uppercase; margin-bottom: 3.5rem; animation: fadeUp 1s ease 0.6s forwards; opacity: 0; }
   .status-bar { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 2rem; animation: fadeUp 1s ease 0.7s forwards; opacity: 0; }
   .status-dot { width: 7px; height: 7px; border-radius: 50%; background: #4CAF50; animation: pulse 2s infinite; }
   .status-dot.calling { background: var(--gold); }
@@ -132,28 +104,47 @@
   <div class="footer">Powered by AI &nbsp;·&nbsp; Copenhagen Services &copy; 2025</div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@vapi-ai/web@2.3.1/dist/vapi.umd.js"></script>
 <script>
   const VAPI_PUBLIC_KEY = '4d43192c-63e8-4a85-acfd-108b4acf2c96';
   const ASSISTANT_ID = '2cbb24ec-9bb8-432d-ad2e-c18e9a20515c';
 
   let vapi = null;
   let isCallActive = false;
+  let sdkReady = false;
 
-  window.addEventListener('load', function() {
-    setTimeout(function() {
-      try {
-        vapi = new Vapi(VAPI_PUBLIC_KEY);
-        vapi.on('call-start', onCallStart);
-        vapi.on('call-end', onCallEnd);
-        vapi.on('speech-start', onSpeechStart);
-        vapi.on('speech-end', onSpeechEnd);
-        vapi.on('error', onError);
-      } catch(e) {
-        console.error('VAPI init failed:', e);
-      }
-    }, 800);
-  });
+  // Load VAPI SDK dynamically
+  function loadSDK() {
+    return new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = 'https://cdn.jsdelivr.net/npm/@vapi-ai/web@2.3.1/dist/vapi.umd.js';
+      script.onload = () => resolve();
+      script.onerror = () => {
+        // Try fallback CDN
+        const script2 = document.createElement('script');
+        script2.src = 'https://unpkg.com/@vapi-ai/web@2.3.1/dist/vapi.umd.js';
+        script2.onload = () => resolve();
+        script2.onerror = () => reject(new Error('SDK failed to load'));
+        document.head.appendChild(script2);
+      };
+      document.head.appendChild(script);
+    });
+  }
+
+  async function initVapi() {
+    try {
+      await loadSDK();
+      vapi = new Vapi(VAPI_PUBLIC_KEY);
+      vapi.on('call-start', onCallStart);
+      vapi.on('call-end', onCallEnd);
+      vapi.on('speech-start', onSpeechStart);
+      vapi.on('speech-end', onSpeechEnd);
+      vapi.on('error', onError);
+      sdkReady = true;
+      console.log('VAPI ready');
+    } catch(e) {
+      console.error('VAPI init failed:', e);
+    }
+  }
 
   function onCallStart() {
     isCallActive = true;
@@ -194,9 +185,14 @@
   }
 
   async function toggleCall() {
-    if (!vapi) {
-      alert('Still loading, please try again in a moment.');
-      return;
+    if (!sdkReady || !vapi) {
+      // Try to init again
+      document.getElementById('statusText').textContent = 'Initializing...';
+      await initVapi();
+      if (!sdkReady) {
+        document.getElementById('statusText').textContent = 'Connection failed. Refresh and try again.';
+        return;
+      }
     }
     if (isCallActive) {
       vapi.stop();
@@ -209,10 +205,13 @@
         console.error('Call error:', e);
         document.getElementById('statusDot').className = 'status-dot';
         document.getElementById('statusText').textContent = 'Available 24/7';
-        alert('Could not connect. Allow microphone access and try again.');
+        alert('Could not connect. Please allow microphone access and try again.');
       }
     }
   }
+
+  // Init on page load
+  window.addEventListener('load', initVapi);
 </script>
 </body>
 </html>
