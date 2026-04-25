@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Copenhagen Services — AI Receptionist</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600&family=Montserrat:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --gold: #C9A84C;
+    --gold-dark: #8B6914;
+    --black: #0A0A0A;
+    --white: #F5F0E8;
+    --white-muted: rgba(245,240,232,0.6);
+  }
+  html, body {
+    height: 100%;
+    background: var(--black);
+    color: var(--white);
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 300;
+  }
+  body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    position: relative;
+  }
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(201,168,76,0.08) 0%, transparent 60%);
+    pointer-events: none;
+  }
+  .container {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 3rem 2rem;
+    max-width: 600px;
+    width: 100%;
+    text-align: center;
+  }
+  .top-line { width: 1px; height: 60px; background: linear-gradient(to bottom, transparent, var(--gold)); margin-bottom: 2.5rem; animation: fadeDown 1.2s ease forwards; opacity: 0; }
+  .logo-area { margin-bottom: 1rem; animation: fadeUp 1s ease 0.3s forwards; opacity: 0; }
+  .logo-eyebrow { font-size: 10px; font-weight: 500; letter-spacing: 0.4em; color: var(--gold); text-transform: uppercase; margin-bottom: 1rem; }
+  .logo-main { font-family: 'Cormorant Garamond', serif; font-size: clamp(2.8rem, 8vw, 4.5rem); font-weight: 300; line-height: 1; letter-spacing: 0.05em; }
+  .logo-main span { color: var(--gold); }
+  .divider { display: flex; align-items: center; gap: 1rem; margin: 2rem 0; width: 100%; max-width: 320px; animation: fadeUp 1s ease 0.5s forwards; opacity: 0; }
+  .divider-line { flex: 1; height: 0.5px; background: linear-gradient(to right, transparent, var(--gold-dark)); }
+  .divider-line.right { background: linear-gradient(to left, transparent, var(--gold-dark)); }
+  .divider-diamond { width: 5px; height: 5px; background: var(--gold); transform: rotate(45deg); }
+  .subtitle { font-size: 11px; font-weight: 400; letter-spacing: 0.3em; color: var(--white-muted); text-transform: uppercase; margin-bottom: 3.5rem; animation: fadeUp 1s ease 0.6s forwards; opacity: 0; }
+  .status-bar { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 2rem; animation: fadeUp 1s ease 0.7s forwards; opacity: 0; }
+  .status-dot { width: 7px; height: 7px; border-radius: 50%; background: #4CAF50; animation: pulse 2s infinite; }
+  .status-dot.calling { background: var(--gold); }
+  .status-dot.ended { background: #555; animation: none; }
+  .status-text { font-size: 11px; letter-spacing: 0.15em; color: var(--white-muted); text-transform: uppercase; }
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(1.3)} }
+  .wave { display: none; align-items: center; justify-content: center; gap: 3px; height: 30px; margin-bottom: 1rem; }
+  .wave.visible { display: flex; }
+  .wave-bar { width: 3px; border-radius: 2px; background: var(--gold); animation: waveAnim 1.2s ease-in-out infinite; }
+  .wave-bar:nth-child(1){animation-delay:0s} .wave-bar:nth-child(2){animation-delay:0.1s} .wave-bar:nth-child(3){animation-delay:0.2s} .wave-bar:nth-child(4){animation-delay:0.3s} .wave-bar:nth-child(5){animation-delay:0.2s} .wave-bar:nth-child(6){animation-delay:0.1s} .wave-bar:nth-child(7){animation-delay:0s}
+  @keyframes waveAnim { 0%,100%{height:4px} 50%{height:24px} }
+  .call-btn { position: relative; width: 100px; height: 100px; border-radius: 50%; border: none; cursor: pointer; background: transparent; margin-bottom: 2rem; animation: fadeUp 1s ease 0.8s forwards; opacity: 0; transition: transform 0.3s ease; }
+  .call-btn:hover { transform: scale(1.05); }
+  .call-btn:active { transform: scale(0.97); }
+  .ring { position: absolute; border-radius: 50%; border: 0.5px solid var(--gold); animation: ringPulse 3s infinite; }
+  .ring-1 { inset: 0; }
+  .ring-2 { inset: -12px; border-color: rgba(201,168,76,0.3); animation-delay: 0.5s; }
+  .ring-3 { inset: -24px; border-color: rgba(201,168,76,0.12); animation-delay: 1s; }
+  .call-btn-inner { position: absolute; inset: 0; border-radius: 50%; background: linear-gradient(135deg, #C9A84C 0%, #8B6914 100%); display: flex; align-items: center; justify-content: center; }
+  .call-btn-inner svg { width: 36px; height: 36px; fill: var(--black); }
+  .call-btn.active .call-btn-inner { background: linear-gradient(135deg, #c0392b 0%, #7B241C 100%); }
+  .call-btn.active .ring-1 { border-color: #c0392b; }
+  .call-btn.active .ring-2 { border-color: rgba(192,57,43,0.3); }
+  .call-btn.active .ring-3 { border-color: rgba(192,57,43,0.12); }
+  @keyframes ringPulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.4;transform:scale(1.04)} }
+  .btn-label { font-size: 10px; font-weight: 500; letter-spacing: 0.3em; color: var(--white-muted); text-transform: uppercase; margin-bottom: 3.5rem; animation: fadeUp 1s ease 0.9s forwards; opacity: 0; }
+  .features { display: flex; gap: 2rem; margin-bottom: 3rem; animation: fadeUp 1s ease 1s forwards; opacity: 0; }
+  .feature { display: flex; flex-direction: column; align-items: center; gap: 0.4rem; }
+  .feature-icon { font-size: 12px; color: var(--gold); }
+  .feature-label { font-size: 9px; font-weight: 500; letter-spacing: 0.2em; color: var(--white-muted); text-transform: uppercase; white-space: nowrap; }
+  .bottom-line { width: 1px; height: 40px; background: linear-gradient(to bottom, var(--gold), transparent); margin-top: 1rem; animation: fadeUp 1.2s ease 1.1s forwards; opacity: 0; }
+  .footer { margin-top: 2rem; font-size: 9px; letter-spacing: 0.25em; color: rgba(245,240,232,0.2); text-transform: uppercase; animation: fadeUp 1s ease 1.2s forwards; opacity: 0; }
+  @keyframes fadeUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+  @keyframes fadeDown { from{opacity:0;transform:translateY(-16px)} to{opacity:1;transform:translateY(0)} }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="top-line"></div>
+  <div class="logo-area">
+    <div class="logo-eyebrow">Est. Copenhagen, Denmark</div>
+    <div class="logo-main">Copenhagen<br><span>Services</span></div>
+  </div>
+  <div class="divider">
+    <div class="divider-line"></div>
+    <div class="divider-diamond"></div>
+    <div class="divider-line right"></div>
+  </div>
+  <div class="subtitle">Luxury Chauffeur &amp; Limousine</div>
+  <div class="status-bar">
+    <div class="status-dot" id="statusDot"></div>
+    <div class="status-text" id="statusText">Available 24/7</div>
+  </div>
+  <div class="wave" id="wave">
+    <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+    <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+    <div class="wave-bar"></div>
+  </div>
+  <button class="call-btn" id="callBtn" onclick="toggleCall()">
+    <div class="ring ring-3"></div>
+    <div class="ring ring-2"></div>
+    <div class="ring ring-1"></div>
+    <div class="call-btn-inner">
+      <svg id="btnIcon" viewBox="0 0 24 24"><path d="M6.62 10.79a15.05 15.05 0 0 0 6.59 6.59l2.2-2.2a1 1 0 0 1 1.01-.24 11.47 11.47 0 0 0 3.58.57 1 1 0 0 1 1 1v3.5a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1 11.47 11.47 0 0 0 .57 3.58 1 1 0 0 1-.24 1.01z"/></svg>
+    </div>
+  </button>
+  <div class="btn-label" id="btnLabel">Speak with our AI Receptionist</div>
+  <div class="features">
+    <div class="feature"><div class="feature-icon">◆</div><div class="feature-label">24/7 Available</div></div>
+    <div class="feature"><div class="feature-icon">◆</div><div class="feature-label">Instant Booking</div></div>
+    <div class="feature"><div class="feature-icon">◆</div><div class="feature-label">5-Star Service</div></div>
+  </div>
+  <div class="bottom-line"></div>
+  <div class="footer">Powered by AI &nbsp;·&nbsp; Copenhagen Services &copy; 2025</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@vapi-ai/web@2.3.1/dist/vapi.umd.js"></script>
+<script>
+  const VAPI_PUBLIC_KEY = '4d43192c-63e8-4a85-acfd-108b4acf2c96';
+  const ASSISTANT_ID = '2cbb24ec-9bb8-432d-ad2e-c18e9a20515c';
+
+  let vapi = null;
+  let isCallActive = false;
+
+  window.addEventListener('load', function() {
+    setTimeout(function() {
+      try {
+        vapi = new Vapi(VAPI_PUBLIC_KEY);
+        vapi.on('call-start', onCallStart);
+        vapi.on('call-end', onCallEnd);
+        vapi.on('speech-start', onSpeechStart);
+        vapi.on('speech-end', onSpeechEnd);
+        vapi.on('error', onError);
+      } catch(e) {
+        console.error('VAPI init failed:', e);
+      }
+    }, 800);
+  });
+
+  function onCallStart() {
+    isCallActive = true;
+    document.getElementById('statusDot').className = 'status-dot calling';
+    document.getElementById('statusText').textContent = 'Connected — Evelyn is listening';
+    document.getElementById('btnLabel').textContent = 'Tap to end call';
+    document.getElementById('callBtn').classList.add('active');
+    document.getElementById('btnIcon').innerHTML = '<rect x="6" y="6" width="12" height="12" rx="2"/>';
+  }
+
+  function onCallEnd() {
+    isCallActive = false;
+    document.getElementById('statusDot').className = 'status-dot ended';
+    document.getElementById('statusText').textContent = 'Call ended — Thank you';
+    document.getElementById('btnLabel').textContent = 'Speak with our AI Receptionist';
+    document.getElementById('callBtn').classList.remove('active');
+    document.getElementById('btnIcon').innerHTML = '<path d="M6.62 10.79a15.05 15.05 0 0 0 6.59 6.59l2.2-2.2a1 1 0 0 1 1.01-.24 11.47 11.47 0 0 0 3.58.57 1 1 0 0 1 1 1v3.5a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1 11.47 11.47 0 0 0 .57 3.58 1 1 0 0 1-.24 1.01z"/>';
+    document.getElementById('wave').classList.remove('visible');
+    setTimeout(function() {
+      document.getElementById('statusDot').className = 'status-dot';
+      document.getElementById('statusText').textContent = 'Available 24/7';
+    }, 3000);
+  }
+
+  function onSpeechStart() {
+    document.getElementById('wave').classList.add('visible');
+    document.getElementById('statusText').textContent = 'Evelyn is speaking...';
+  }
+
+  function onSpeechEnd() {
+    document.getElementById('wave').classList.remove('visible');
+    document.getElementById('statusText').textContent = 'Listening...';
+  }
+
+  function onError(e) {
+    console.error('VAPI error:', e);
+    onCallEnd();
+  }
+
+  async function toggleCall() {
+    if (!vapi) {
+      alert('Still loading, please try again in a moment.');
+      return;
+    }
+    if (isCallActive) {
+      vapi.stop();
+    } else {
+      document.getElementById('statusDot').className = 'status-dot calling';
+      document.getElementById('statusText').textContent = 'Connecting...';
+      try {
+        await vapi.start(ASSISTANT_ID);
+      } catch(e) {
+        console.error('Call error:', e);
+        document.getElementById('statusDot').className = 'status-dot';
+        document.getElementById('statusText').textContent = 'Available 24/7';
+        alert('Could not connect. Allow microphone access and try again.');
+      }
+    }
+  }
+</script>
+</body>
+</html>
